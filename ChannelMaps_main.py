@@ -58,8 +58,8 @@ if polar_coords == True:
         np.save(path + 'density.npy', rho)
 
     np.save(path + 'vr.npy', vr)
-    np.save(path + 'vphi.npy', vphi)
-    np.save(path + 'deltavphi.npy', vphi - (-s.cw * vK))
+    np.save(path + 'vphi.npy', -s.cw * vphi)
+    np.save(path + 'deltavphi.npy', -s.cw * (vphi - vK))
     np.save(path + 'deltav.npy', deltav)
 
 else:
@@ -90,8 +90,8 @@ else:
         np.save(path + 'density.npy', rho)
 
     np.save(path + 'vr.npy', vr)
-    np.save(path + 'vphi.npy', vphi)
-    np.save(path + 'deltavphi.npy', vphi - (-s.cw * vK))
+    np.save(path + 'vphi.npy', -s.cw * vphi)
+    np.save(path + 'deltavphi.npy', -s.cw * (vphi - vK))
     np.save(path + 'deltav.npy', deltav)
 
 print('~ Done! \n')
@@ -105,14 +105,15 @@ print('~ Done! \n')
 #print('~ Interpolating to new grid')
 
 #grid_mapper(path)
-
 """
+title = "q ="+str(s.q)+", p ="+str(s.p)
+
 print('~ Making figures ...')
-f.make_contourplot(deltav, bar_label='$\\delta v(r,\\varphi)$', saveas = path +'delta_v')
-f.make_contourplot(vphi - (-s.cw * vK), bar_label='$v(r,\\varphi)$  [km/s]', saveas = path + 'azimuthal_vel_pert')
-f.make_contourplot(vr, bar_label='$u(r,\\varphi)$  [km/s]', saveas = 'radial_vel_pert')
+f.make_contourplot(deltav, title = '$\\delta v(r,\\varphi)$', bar_label='$\\delta v(r,\\varphi)$', saveas = path +'delta_v')
+f.make_contourplot(vphi - (-s.cw * vK), title = '$v(r,\\varphi)$', bar_label='$v(r,\\varphi)$  [km/s]', saveas = path + 'azimuthal_vel_pert')
+f.make_contourplot(vr, title = '$u(r,\\varphi)$', bar_label='$u(r,\\varphi)$  [km/s]', saveas = path + 'radial_vel_pert')
 if s.density:
-    f.make_contourplot(density_pert, bar_label = '$(\Sigma - \Sigma _0)\Sigma _0^{-1}$', saveas = path + 'density_pert')
+    f.make_contourplot(density_pert, title = '$(\Sigma - \Sigma _0)\Sigma _0^{-1}$', bar_label = '$(\Sigma - \Sigma _0)\Sigma _0^{-1}$', saveas = path + 'density_pert')
 
 if np.ndim(s.vchs) > 0:
 
@@ -126,5 +127,5 @@ if np.ndim(s.vchs) > 0:
     v_field = f.rotate_velocity_field(v_field)
 
     print('~ Making channel maps plot ...')
-    f.make_contourplot(v_field[:,:,2]-v_field0[:,:,2], bar_label='$\\Delta v_n (r,\\varphi)$   [km/s]', WithChannels = True, vz_field = v_field[:,:,2], saveas = path + 'contour.pdf')
+    f.make_contourplot(v_field[:,:,2]-v_field0[:,:,2], title = title, bar_label='$\\Delta v_n (r,\\varphi)$   [km/s]', WithChannels = True, vz_field = v_field[:,:,2], saveas = path + 'contour.pdf')
 """
