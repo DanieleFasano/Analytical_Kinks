@@ -65,7 +65,11 @@ def init(file):
     indad = float(params['indad'])
     PA = float(params['PA']) * np.pi/180
     PAp = float(params['PAp']) * np.pi/180
-    i = float(params['inclination']) * np.pi/180
+    if cw < 0:
+        i = float(params['inclination']) * np.pi/180
+    else:
+        i = (float(params['inclination'])+180) * np.pi/180
+
 
     # auxiliary angle needed for PAp
     xi = np.arctan( np.tan(PAp)/np.cos(i) )
