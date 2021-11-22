@@ -447,8 +447,8 @@ def solve_burgers(eta,profile, inner = False): # Solve eq. (10) Bollati et al. 2
    tf = tf_th/s.betap # time required to display N-wave for generic betap, Eq. (39) Rafikov 2002
 
    if inner == True:
-       eta_min = -s.eta_tilde_inner-np.sqrt(2*s.C_inner*tf) - 3  # Eq. (18) Bollati et al. 2021
-       eta_max = -s.eta_tilde_inner+np.sqrt(2*s.C_inner*tf) + 3
+       eta_min = s.eta_tilde_inner-np.sqrt(2*s.C_inner*tf) - 3  # Eq. (18) Bollati et al. 2021
+       eta_max = s.eta_tilde_inner+np.sqrt(2*s.C_inner*tf) + 3
    else:
        eta_min = -s.eta_tilde-np.sqrt(2*s.C*tf) - 3  # Eq. (18) Bollati et al. 2021
        eta_max = -s.eta_tilde+np.sqrt(2*s.C*tf) + 3
@@ -847,7 +847,10 @@ def get_chi(pphi, rr, time, time_inner, eta, eta_inner, solution, solution_inner
     else:
        if t1 < (tf + s.t0_inner):   # use numerical solution before the profile develops N-wave
             index_t = np.argmax( (s.t0_inner + time_inner) > t1 )
-            grid_t = [s.t0_inner+time_inner[index_t-1], s.t0_inner+time_inner[index_t]]
+            if index_t == 0:
+                grid_t = [s.t0_inner+time_inner[index_t], s.t0_inner+time_inner[index_t+1]]
+            else:
+                grid_t = [s.t0_inner+time_inner[index_t-1], s.t0_inner+time_inner[index_t]]
     
             # the density (Chi) azimuthal profile is flipped along the azimuthal direction
             # both passing from r > Rp to r < Rp and from cw = -1 to cw = +1:
