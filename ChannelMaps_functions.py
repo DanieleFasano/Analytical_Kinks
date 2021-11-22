@@ -91,24 +91,6 @@ def upload_linear_perturbations():
     ul = s.Ulin[indx_yl_start:indx_yl_end+1, indx_xl_start:indx_xl_end+1]
     dl = s.Dlin[indx_yl_start:indx_yl_end+1, indx_xl_start:indx_xl_end+1]
 
-    if s.cw == 1:
-
-        ul_temp = np.zeros(ul.shape)
-        vl_temp = np.zeros(vl.shape)
-        dl_temp = np.zeros(dl.shape)
-
-        for i in range(Nx):
-            for j in range(Ny):
-
-                ul_temp[j,i] = ul[Ny-1-j,i]
-                vl_temp[j,i] = - vl[Ny-1-j,i]
-                dl_temp[j,i] = dl[Ny-1-j,i]
-
-        ul = ul_temp.copy()
-        vl = vl_temp.copy()
-        dl = dl_temp.copy()
-
-
     # rescale to physical units
     ul = ul*s.csp*s.betap
     vl = vl*s.csp*s.betap
@@ -126,7 +108,7 @@ def vKepler_plus_linear_pert(xl,yl,ul,vl,vK):
     vphi = np.zeros((s.Nphi,s.Nr))
     deltav = np.zeros((s.Nphi,s.Nr))
 
-    vphi = - s.cw * vK.copy()
+    vphi = vK.copy()
 
     for i in range(s.Nr):
        if s.X[0,i] >= (s.Rp - s.x_match*s.l) and s.X[0,i]<= (s.Rp + s.x_match*s.l):
@@ -153,7 +135,7 @@ def vKepler_plus_linear_pert_cartesian(xl,yl,ul,vl,vK):
     vphi = np.zeros((len(s.x),len(s.y)))
     deltav = np.zeros((len(s.x),len(s.y)))
 
-    vphi = - s.cw * vK.copy()
+    vphi = vK.copy()
 
     for i in range(len(s.x)):
        if s.x[i] >= (s.Rp - s.x_match*s.l) and s.x[i]<= (s.Rp + s.x_match*s.l):
@@ -244,7 +226,6 @@ def extract_burgers_IC(X, inner = False): # take the initial condition for burge
    y_cut = y[(y-y_match>-eta_max) & (y-y_match<eta_max)]
    eta = y_cut - y_match*np.ones(len(y_cut))
    profile = profile[(y-y_match>-eta_max) & (y-y_match<eta_max)]
-   plt.plot(profile)
 
    # set t0 (t correponding to the x_match)
    if inner == True:
@@ -425,6 +406,10 @@ def solve_burgers_old(eta,profile): # Solve eq. (10) Bollati et al. 2021
    plt.colorbar()
    plt.show()
    """
+   path = s.name + '/'
+   np.save(path + 't.npy', time)
+   np.save(path + 'eta.npy', eta)
+   np.save(path + 'chi.npy', solution)
 
    Nt = np.shape(solution)[1]
 
@@ -575,16 +560,18 @@ def solve_burgers(eta,profile, inner = False): # Solve eq. (10) Bollati et al. 2
    return time, eta, solution
 
 
-def phi_wake(r): # Eq. (4) Bollati et al. 2021
+def phi_wake(r, cw = None): # Eq. (4) Bollati et al. 2021
 
    rr = r / s.Rp
-   return -s.cw * np.sign(r-s.Rp)*(1/s.hr)*( rr**(s.q-0.5)/(s.q-0.5) - rr**(s.q + 1)/(s.q+1)-3/((2*s.q-1)*(s.q+1)) )
+   if cw == None:
+       cw = 1
+   return cw*np.sign(r-s.Rp)*(1/s.hr)*( rr**(s.q-0.5)/(s.q-0.5) - rr**(s.q + 1)/(s.q+1)-3/((2*s.q-1)*(s.q+1)) )
 
 
-def Eta(r,phi): # Eq. (14) Bollati et al. 2021
+def Eta(r,phi, cw = None): # Eq. (14) Bollati et al. 2021
 
    coeff = 1.5/s.hr
-   phi_w = mod2pi(phi_wake(r))
+   phi_w = mod2pi(phi_wake(r, cw))
    deltaphi = phi - phi_w
 
    if deltaphi > np.pi:
@@ -650,7 +637,6 @@ def Lambda_fv(r):      # Eq. (29) Bollati et al. 2021
     term2 = (r/s.Rp)**(0.5*(s.p-s.q-3))
     return coeff*term1*term2
 
-
 def compute_nonlinear_pert_old():
 
     print('  * Extracting Burgers initial condition from linear density perturbation ...')
@@ -695,11 +681,11 @@ def compute_nonlinear_pert():
     
     print('  * Solving inner Burgers equation ...')
     time_inner, eta_inner, solution_inner = solve_burgers(eta_inner, profile_inner, inner = True)
-
+    
     print('  * Computing nonlinear perturbations ...')
 
     tf = time[-1]
-
+    
     dnl = np.zeros((s.Nphi,s.Nr))
     unl = np.zeros((s.Nphi,s.Nr))
     vnl = np.zeros((s.Nphi,s.Nr))
@@ -781,7 +767,7 @@ def get_chi_old(pphi, rr, time, eta, eta_inner, solution, solution_inner, tf):
                 Chi = 0
             else:
                 index_eta = np.argmax( eta_inner > eta1)
-                grid_eta = np.array([eta[index_eta-1],eta[index_eta]])
+                #grid_eta = np.array([eta_inner[index_eta-1],eta_inner[index_eta]])
                 grid_eta = np.array([eta[index_eta-1],eta[index_eta]])
                 grid_solution = np.array([
                     [solution_inner[index_eta-1,index_t-1], solution_inner[index_eta-1,index_t]],
@@ -813,14 +799,13 @@ def get_chi(pphi, rr, time, time_inner, eta, eta_inner, solution, solution_inner
     t1 = t(rr)
     eta1 = Eta(rr,pphi)
 
-    if s.cw*(rr-s.Rp) < 0:
+    if (rr-s.Rp) > 0:
         if t1 < (tf + s.t0):   # use numerical solution before the profile develops N-wave
             index_t = np.argmax( (s.t0 + time) > t1 )
             grid_t = [s.t0+time[index_t-1], s.t0+time[index_t]]
     
             # the density (Chi) azimuthal profile is flipped along the azimuthal direction
             # both passing from r > Rp to r < Rp and from cw = -1 to cw = +1:
-    
             if eta1 > eta[-1] or eta1 < eta[0]:
                 Chi = 0
             else:
@@ -836,11 +821,11 @@ def get_chi(pphi, rr, time, time_inner, eta, eta_inner, solution, solution_inner
                 
         else: # for large t use the analytical N-wave shape (Eq. 17 Bollati et al. 2021)
 
-            extr_left = +s.cw * np.sign(rr-s.Rp) * s.eta_tilde - np.sqrt(2*s.C*(t1-s.t0))
-            extr_right = +s.cw * np.sign(rr-s.Rp) * s.eta_tilde + np.sqrt(2*s.C*(t1-s.t0))
+            extr_left = - np.sign(rr-s.Rp) * s.eta_tilde - np.sqrt(2*s.C*(t1-s.t0))
+            extr_right = - np.sign(rr-s.Rp) * s.eta_tilde + np.sqrt(2*s.C*(t1-s.t0))
     
             if eta1 > extr_left and eta1 < extr_right:
-                Chi = (-s.cw * np.sign(rr-s.Rp) * eta1 + s.eta_tilde) / (t1-s.t0)  #eq.(29) nonlinear.pdf
+                Chi = (np.sign(rr-s.Rp) * eta1 + s.eta_tilde) / (t1-s.t0)  #eq.(29) nonlinear.pdf
             else:
                 Chi = 0
 
@@ -851,7 +836,6 @@ def get_chi(pphi, rr, time, time_inner, eta, eta_inner, solution, solution_inner
                 grid_t = [s.t0_inner+time_inner[index_t], s.t0_inner+time_inner[index_t+1]]
             else:
                 grid_t = [s.t0_inner+time_inner[index_t-1], s.t0_inner+time_inner[index_t]]
-    
             # the density (Chi) azimuthal profile is flipped along the azimuthal direction
             # both passing from r > Rp to r < Rp and from cw = -1 to cw = +1:
             if eta1 > eta_inner[-1] or eta1 < eta_inner[0]:
@@ -870,11 +854,11 @@ def get_chi(pphi, rr, time, time_inner, eta, eta_inner, solution, solution_inner
 
        else: # for large t use the analytical N-wave shape (Eq. 17 Bollati et al. 2021)
     
-            extr_left = +s.cw * np.sign(rr-s.Rp) * s.eta_tilde_inner - np.sqrt(2*s.C_inner*(t1-s.t0_inner))
-            extr_right = +s.cw * np.sign(rr-s.Rp) * s.eta_tilde_inner + np.sqrt(2*s.C_inner*(t1-s.t0_inner))
+            extr_left = -np.sign(rr-s.Rp) * s.eta_tilde_inner - np.sqrt(2*s.C_inner*(t1-s.t0_inner))
+            extr_right = -np.sign(rr-s.Rp) * s.eta_tilde_inner + np.sqrt(2*s.C_inner*(t1-s.t0_inner))
     
             if eta1 > extr_left and eta1 < extr_right:
-                Chi = (-s.cw * np.sign(rr-s.Rp) * eta1 + s.eta_tilde_inner) / (t1-s.t0_inner)  #eq.(29) nonlinear.pdf
+                Chi = ( -np.sign(rr-s.Rp) * eta1 + s.eta_tilde_inner) / (t1-s.t0_inner)  #eq.(29) nonlinear.pdf
             else:
                 Chi = 0
 
@@ -887,7 +871,7 @@ def get_dens_vel(rr, Chi):
     Lfu = Lambda_fu(rr)
     Lfv = Lambda_fv(rr)
     unl = np.sign(rr-s.Rp) * Lfu * Chi           # Eq. (23) Bollati et al. 2021
-    vnl = np.sign(rr-s.Rp) * Lfv * Chi * (-s.cw) # Eq. (24) Bollati et al. 2021 (the sign of v is reversed if we change cw)
+    vnl = np.sign(rr-s.Rp) * Lfv * Chi # Eq. (24) Bollati et al. 2021 (the sign of v is reversed if we change cw)
 
     return dnl, unl, vnl
 
@@ -975,6 +959,8 @@ def get_normalise_density_field_cartesian(dens_pert):
 
 
 ## FUNCTIONS FOR PLOTS ....
+
+## TODO: Update plotting function
 
 def make_contourplot(field, bar_label = None, title = None, saveas = None, WithChannels = None, vz_field = None):
 
@@ -1068,12 +1054,21 @@ def get_velocity_Cartesian_components(vr,vphi):
 
 
 def Rx(a):
+   a = a % (2*np.pi)
+   if a < 0:
+       a = 2*np.pi + a
    R = [[1,0,0],[0,np.cos(a),-np.sin(a)],[0, np.sin(a), np.cos(a)]]
    return R
 def Ry(b):
+   b = b % (2*np.pi)
+   if b < 0:
+      b = 2*np.pi + b    
    R = [[np.cos(b),0,np.sin(b)],[0,1,0],[-np.sin(b),0,np.cos(b)]]
    return R
 def Rz(g):
+   g = g % (2*np.pi)
+   if g < 0:
+       g = 2*np.pi + g
    R = [[np.cos(g),-np.sin(g),0],[np.sin(g),np.cos(g),0],[0,0,1]]
    return R
 
@@ -1093,7 +1088,7 @@ def rotate_meshgrid():
         for i in range(200):
             s.disc_edge[i,0],s.disc_edge[i,1], temp = np.dot( Rx(s.i), np.array([s.disc_edge[i,0],s.disc_edge[i,1],0]) )
             s.disc_edge[i,0],s.disc_edge[i,1], temp = np.dot( Rz(s.PA), np.array([s.disc_edge[i,0],s.disc_edge[i,1],0]) )
-
+ 
 
 def rotate_velocity_field(v_field):
 
