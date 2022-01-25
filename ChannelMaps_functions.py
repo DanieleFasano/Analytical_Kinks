@@ -424,6 +424,8 @@ def solve_burgers_old(eta,profile): # Solve eq. (10) Bollati et al. 2021
 
 def solve_burgers(eta,profile, inner = False): # Solve eq. (10) Bollati et al. 2021
 
+   if inner == True:
+       profile = -profile
    profile = profile * (s.indad+1) * s.betap / 2**(3/4) # Eq. (15) Bollati et al. 2021
 
    deta = eta[1]-eta[0]
@@ -541,8 +543,11 @@ def solve_burgers(eta,profile, inner = False): # Solve eq. (10) Bollati et al. 2
       F[Neta] = NumericalFlux(uL,uR)
 
       solution.append(solution[-1][0:Neta] - dt / deta * (F[1:Neta+1] - F[0:Neta]))
-
-   solution = np.array(solution).transpose()
+      
+   if inner == True:
+       solution = -np.array(solution).transpose()
+   else:
+       solution = np.array(solution).transpose()
    time = np.array(time)
   
    path = s.name + '/'
@@ -858,7 +863,7 @@ def get_chi(pphi, rr, time, time_inner, eta, eta_inner, solution, solution_inner
             extr_right = -np.sign(rr-s.Rp) * s.eta_tilde_inner + np.sqrt(2*s.C_inner*(t1-s.t0_inner))
     
             if eta1 > extr_left and eta1 < extr_right:
-                Chi = ( -np.sign(rr-s.Rp) * eta1 + s.eta_tilde_inner) / (t1-s.t0_inner)  #eq.(29) nonlinear.pdf
+                Chi = ( np.sign(rr-s.Rp) * eta1 + s.eta_tilde_inner) / (t1-s.t0_inner)  #eq.(29) nonlinear.pdf
             else:
                 Chi = 0
 
